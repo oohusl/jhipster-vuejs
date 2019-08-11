@@ -25,9 +25,9 @@ const VUE_DIR = 'src/main/webapp/app/';
 const CLIENT_VUE_TEMPLATES_DIR = 'vue';
 
 /**
-* The default is to use a file path string. It implies use of the template method.
-* For any other config an object { file:.., method:.., template:.. } can be used
-*/
+ * The default is to use a file path string. It implies use of the template method.
+ * For any other config an object { file:.., method:.., template:.. } can be used
+ */
 
 const vueFiles = {
     client: [
@@ -36,31 +36,45 @@ const vueFiles = {
             templates: [
                 {
                     file: 'entities/entity-details.vue',
-                    renameTo: generator => `entities/${generator.entityFolderName}/${generator.entityFileName}-details.vue`
+                    renameTo: generator => `entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }-details.vue`
                 },
                 {
                     file: 'entities/entity-details.component.ts',
-                    renameTo: generator => `entities/${generator.entityFolderName}/${generator.entityFileName}-details.component.ts`
+                    renameTo: generator => `entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }-details.component.ts`
                 },
                 {
                     file: 'entities/entity-update.vue',
-                    renameTo: generator => `entities/${generator.entityFolderName}/${generator.entityFileName}-update.vue`
+                    renameTo: generator => `entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }-update.vue`
                 },
                 {
                     file: 'entities/entity-update.component.ts',
-                    renameTo: generator => `entities/${generator.entityFolderName}/${generator.entityFileName}-update.component.ts`
+                    renameTo: generator => `entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }-update.component.ts`
                 },
                 {
                     file: 'entities/entity.vue',
-                    renameTo: generator => `entities/${generator.entityFolderName}/${generator.entityFileName}.vue`
+                    renameTo: generator => `views/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }.vue`
                 },
                 {
                     file: 'entities/entity.component.ts',
-                    renameTo: generator => `entities/${generator.entityFolderName}/${generator.entityFileName}.component.ts`
+                    renameTo: generator => `views/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }.component.ts`
                 },
                 {
                     file: 'entities/entity.service.ts',
-                    renameTo: generator => `entities/${generator.entityFolderName}/${generator.entityFileName}.service.ts`
+                    renameTo: generator => `entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }.service.ts`
                 },
                 {
                     file: 'entities/entity.model.ts',
@@ -75,20 +89,31 @@ const vueFiles = {
             path: CLIENT_TEST_SRC_DIR,
             templates: [
                 {
-                    file: 'spec/app/entities/entity-management.component.spec.ts',
-                    renameTo: generator => `spec/app/entities/${generator.entityFolderName}/${generator.entityFileName}.component.spec.ts`
+                    file:
+                        'spec/app/entities/entity-management.component.spec.ts',
+                    renameTo: generator => `spec/app/entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }.component.spec.ts`
                 },
                 {
-                    file: 'spec/app/entities/entity-management-details.component.spec.ts',
-                    renameTo: generator => `spec/app/entities/${generator.entityFolderName}/${generator.entityFileName}-details.component.spec.ts`
+                    file:
+                        'spec/app/entities/entity-management-details.component.spec.ts',
+                    renameTo: generator => `spec/app/entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }-details.component.spec.ts`
                 },
                 {
-                    file: 'spec/app/entities/entity-management-update.component.spec.ts',
-                    renameTo: generator => `spec/app/entities/${generator.entityFolderName}/${generator.entityFileName}-update.component.spec.ts`
+                    file:
+                        'spec/app/entities/entity-management-update.component.spec.ts',
+                    renameTo: generator => `spec/app/entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }-update.component.spec.ts`
                 },
                 {
                     file: 'spec/app/entities/entity-management.service.spec.ts',
-                    renameTo: generator => `spec/app/entities/${generator.entityFolderName}/${generator.entityFileName}.service.spec.ts`
+                    renameTo: generator => `spec/app/entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }.service.spec.ts`
                 }
             ]
         },
@@ -98,25 +123,32 @@ const vueFiles = {
             templates: [
                 {
                     file: 'e2e/entities/entity-page-object.ts',
-                    renameTo: generator => `e2e/entities/${generator.entityFolderName}/${generator.entityFileName}.page-object.ts`
+                    renameTo: generator => `e2e/entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }.page-object.ts`
                 },
                 {
                     file: 'e2e/entities/entity.spec.ts',
-                    renameTo: generator => `e2e/entities/${generator.entityFolderName}/${generator.entityFileName}.spec.ts`
+                    renameTo: generator => `e2e/entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }.spec.ts`
                 },
                 {
                     file: 'e2e/entities/entity-details-page-object.ts',
-                    renameTo: generator => `e2e/entities/${generator.entityFolderName}/${generator.entityFileName}-details.page-object.ts`
+                    renameTo: generator => `e2e/entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }-details.page-object.ts`
                 },
                 {
                     file: 'e2e/entities/entity-update-page-object.ts',
-                    renameTo: generator => `e2e/entities/${generator.entityFolderName}/${generator.entityFileName}-update.page-object.ts`
+                    renameTo: generator => `e2e/entities/${generator.entityFolderName}/${
+                        generator.entityFileName
+                    }-update.page-object.ts`
                 }
             ]
         }
     ]
 };
-
 
 module.exports = {
     writeFiles
@@ -131,21 +163,45 @@ function writeFiles() {
     const className = this.entityClass;
     const entityName = this.entityInstance;
     const entityAngularName = this.entityAngularName;
-    utils.addEntityToMenu(this, this.entityFileName, this.entityTranslationKeyMenu, className);
+    utils.addEntityToMenu(
+        this,
+        this.entityFileName,
+        this.entityTranslationKeyMenu,
+        className
+    );
 
     // Add entity paths to routing system
-    utils.addEntityToRouterImport(this, entityAngularName, this.entityFileName, this.entityFolderName);
-    utils.addEntityToRouter(this, entityName, this.entityFileName, entityAngularName);
+    utils.addEntityToRouterImport(
+        this,
+        entityAngularName,
+        this.entityFileName,
+        this.entityFolderName
+    );
+    utils.addEntityToRouter(
+        this,
+        entityName,
+        this.entityFileName,
+        entityAngularName
+    );
 
     // Add entity services to main
-    utils.addEntityServiceToMainImport(this, className, this.entityFileName, this.entityFolderName);
+    utils.addEntityServiceToMainImport(
+        this,
+        className,
+        this.entityFileName,
+        this.entityFolderName
+    );
     utils.addEntityServiceToMain(this, entityName, className);
 
     if (!this.enableTranslation) {
         utils.replaceTranslation(this, [
             `app/entities/${this.entityFolderName}/${this.entityFileName}.vue`,
-            `app/entities/${this.entityFolderName}/${this.entityFileName}-update.vue`,
-            `app/entities/${this.entityFolderName}/${this.entityFileName}-details.vue`
+            `app/entities/${this.entityFolderName}/${
+                this.entityFileName
+            }-update.vue`,
+            `app/entities/${this.entityFolderName}/${
+                this.entityFileName
+            }-details.vue`
         ]);
     }
 }

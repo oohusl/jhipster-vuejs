@@ -1,197 +1,109 @@
 <template>
-    <div>
-        <h2 id="page-heading">
-            <span v-text="$t('<%= i18nKeyPrefix %>.home.title')" id="<%= entityFileName %>-heading"><%= entityClassPluralHumanized %></span>
-            <router-link :to="{name: '<%= entityAngularName %>Create'}" tag="button" id="jh-create-entity" class="btn btn-primary float-right jh-create-entity create-<%= entityUrl %>">
-                <font-awesome-icon icon="plus"></font-awesome-icon>
-                <span  v-text="$t('<%= i18nKeyPrefix %>.home.createLabel')">
-                    Create a new <%= entityClassHumanized %>
-                </span>
-            </router-link>
-        </h2>
-        <b-alert :show="dismissCountDown"
-            dismissible
-            :variant="alertType"
-            @dismissed="dismissCountDown=0"
-            @dismiss-count-down="countDownChanged">
-            {{alertMessage}}
-        </b-alert>
-        <%_ if (searchEngine === 'elasticsearch') { _%>
-        <div class="row">
-            <div class="col-sm-12">
-                <form name="searchForm" class="form-inline" v-on:submit.prevent="search(currentSearch)">
-                    <div class="input-group w-100 mt-3">
-                        <input type="text" class="form-control" name="currentSearch" id="currentSearch"
-                            v-bind:placeholder="$t('<%= i18nKeyPrefix %>.home.search')"
-                            v-model="currentSearch" />
-                        <button type="button" id="launch-search" class="btn btn-primary" v-on:click="search(currentSearch)">
-                            <font-awesome-icon icon="search"></font-awesome-icon>
-                        </button>
-                        <button type="button" id="clear-search" class="btn btn-secondary" v-on:click="clear()"
-                            v-if="currentSearch">
-                            <font-awesome-icon icon="trash"></font-awesome-icon>
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <div class="app-container">
+        <div class="filter-container">
+            <el-input v-model="listQuery.login" placeholder style="width: 200px;" class="filter-item"
+                @keyup.enter.native="handleFilter" />
+            <el-button class="filter-item" type="primary" icon="el-icon-search" @click="handleFilter">查询</el-button>
+            <el-button class="filter-item" style="margin-left: 10px;" type="primary" icon="el-icon-edit" @click="handleCreate">
+                添加</el-button>
         </div>
-        <%_ } _%>
-        <br/>
-        <div class="alert alert-warning" v-if="!isFetching && <%= entityInstancePlural %> && <%= entityInstancePlural %>.length === 0">
-            <span v-text="$t('<%= i18nKeyPrefix %>.home.notFound')">No <%=entityInstancePlural %> found</span>
-        </div>
-        <div class="table-responsive" v-if="<%= entityInstancePlural %> && <%= entityInstancePlural %>.length > 0">
-            <table class="table table-striped">
-                <thead>
-                <tr>
-                    <th<% if (pagination !== 'no') { %> v-on:click="changeOrder('id')"<% } %>><span v-text="$t('global.field.id')">ID</span><% if (pagination !== 'no') { %> <font-awesome-icon icon="sort"></font-awesome-icon><% } %></th>
-                    <%_ for (idx in fields) { _%>
-                    <th<% if (pagination !== 'no') { %> v-on:click="changeOrder('<%= fields[idx].fieldName%>')"<% } %>><span v-text="$t('<%=`${i18nKeyPrefix}.${fields[idx].fieldName}` %>')"><%= fields[idx].fieldNameHumanized %></span><% if (pagination !== 'no') { %> <font-awesome-icon icon="sort"></font-awesome-icon><% } %></th>
-                    <%_ } _%>
-                    <%_ for (idx in relationships) { _%>
-                        <%_ if (relationships[idx].relationshipType === 'many-to-one'
-                        || (relationships[idx].relationshipType === 'one-to-one' && relationships[idx].ownerSide === true)
-                        || (relationships[idx].relationshipType === 'many-to-many' && relationships[idx].ownerSide === true && pagination === 'no')) {
-                            const fieldName = dto === 'no' ? "." + relationships[idx].otherEntityField : relationships[idx].otherEntityFieldCapitalized;_%>
-                    <th<% if (pagination !== 'no') { %> v-on:click="changeOrder('<%=relationships[idx].relationshipName + (fieldName)%>')"<% } %>><span v-text="$t('<%= `${i18nKeyPrefix}.${relationships[idx].relationshipName}` %>')"><%= relationships[idx].relationshipNameHumanized %></span><% if (pagination !== 'no') { %> <font-awesome-icon icon="sort"></font-awesome-icon><% } %></th>
-                        <%_ } _%>
-                    <%_ } _%>
-                    <th></th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr v-for="<%= entityInstance %> in <%= entityInstancePlural %>"
-                    :key="<%= entityInstance %>.id">
-                    <td>
-                        <router-link :to="{name: '<%= entityAngularName %>View', params: {<%= entityInstance %>Id: <%= entityInstance %>.id}}">{{<%= entityInstance %>.id}}</router-link>
-                    </td>
-                    <%_ for (idx in fields) {
+        <el-table v-loading="listLoading" :data="list" border fit highlight-current-row style="width: 100%;">
+                <%_ for (idx in fields) { _%>
+                <el-table-column label="<%=fields[idx].javadoc || fields[idx].fieldName%>" prop="<%=fields[idx].fieldName%>" align="center" width="80">
+                    <template slot-scope="scope">
+                        <span>{{ scope.row.<%=fields[idx].fieldName%> }}</span>
+                    </template>
+                </el-table-column>
+                <%_ } _%>
+                <el-table-column label="操作" align="center" width="230" class-name="small-padding fixed-width">
+                    <template slot-scope="{row}">
+                        <el-button type="primary" size="mini" @click="handleUpdate(row)">修改</el-button>
+                        <el-button v-if="row.status !== 'ENABLED'" size="mini" type="success"
+                            @click="handleModifyStatus(row,'ENABLED')">启用</el-button>
+                        <el-button v-if="row.status !== 'DISABLED'" size="mini" type="danger"
+                            @click="handleModifyStatus(row,'DISABLED')">禁用</el-button>
+                    </template>
+                </el-table-column>
+        </el-table>
+        <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
+            <el-form ref="dataForm" :rules="rules" :model="editItem" label-position="left" label-width="100px"
+                style="width: 400px; margin-left:50px;">
+                <el-form-item label="ID" prop="type">
+                    <el-input v-model="editItem.id" class="filter-item" readonly />
+                </el-form-item>
+                <%_ for (idx in fields) {
                         const fieldName = fields[idx].fieldName;
                         const fieldNameCapitalized = fields[idx].fieldNameCapitalized;
+                        const fieldNameHumanized = fields[idx].fieldNameHumanized;
                         const fieldType = fields[idx].fieldType;
-                        const fieldTypeBlobContent = fields[idx].fieldTypeBlobContent; _%>
-                        <%_ if (['byte[]', 'ByteBuffer'].includes(fieldType) && fieldTypeBlobContent === 'image') { _%>
-                    <td>
-                        <a v-if="<%= entityInstance %>.<%= fieldName %>" v-on:click="openFile(<%= entityInstance %>.<%= fieldName %>ContentType, <%= entityInstance %>.<%= fieldName %>)">
-                            <img v-bind:src="'data:' + <%=entityInstance %>.<%=fieldName%>ContentType + ';base64,' + <%=entityInstance %>.<%=fieldName%>" style="max-height: 30px;" alt="<%=entityInstance %> image"/>
-                        </a>
-                        <span v-if="<%= entityInstance %>.<%= fieldName %>">{{<%= entityInstance %>.<%= fieldName %>ContentType}}, {{byteSize(<%= entityInstance %>.<%= fieldName %>)}}</span>
-                    </td>
-                        <%_ } else if (['byte[]', 'ByteBuffer'].includes(fieldType) && fieldTypeBlobContent === 'any') { _%>
-                    <td>
-                        <a v-if="<%= entityInstance %>.<%= fieldName %>" v-on:click="openFile(<%= entityInstance %>.<%= fieldName %>ContentType, <%= entityInstance %>.<%= fieldName %>)" v-text="$t('entity.action.open')">open</a>
-                        <span v-if="<%= entityInstance %>.<%= fieldName %>">{{<%= entityInstance %>.<%= fieldName %>ContentType}}, {{byteSize(<%= entityInstance %>.<%= fieldName %>)}}</span>
-                    </td>
-                        <%_ } else if (fields[idx].fieldIsEnum) { _%>
-                    <td v-text="$t('<%= angularAppName %>.<%= fieldType %>.' + <%= entityInstance %>.<%= fieldName %>)">{{<%= entityInstance %>.<%= fieldName %>}}</td>
-                        <%_ } else if (['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
-                    <td>{{<%=entityInstance %>.<%=fieldName%> | formatDate}}</td>
-                        <%_ } else { _%>
-                    <td>{{<%=entityInstance %>.<%=fieldName%>}}</td>
+                        const fieldTypeBlobContent = fields[idx].fieldTypeBlobContent;
+                        const fieldChName= fields[idx].javadoc || fields[idx].fieldName;
+                        let fieldInputType = 'text';
+                        let fieldInputClass = 'form-control';
+                        let ngModelOption = '';
+                        const translationKey = `${i18nKeyPrefix}.${fieldName}`;
+                        if (['Integer', 'Long', 'Float', 'Double', 'BigDecimal', 'Duration'].includes(fieldType)) {
+                            fieldInputType = 'number';
+                        } else if (fieldType === 'LocalDate') {
+                            fieldInputType = 'date';
+                        } else if (['Instant', 'ZonedDateTime'].includes(fieldType)) {
+                            fieldInputType = 'datetime-local';
+                        } else if (fieldType === 'Boolean') {
+                            fieldInputType = 'checkbox';
+                            fieldInputClass = 'form-check';
+                        } else if (['byte[]', 'ByteBuffer'].includes(fieldType) && fieldTypeBlobContent !== 'text') {
+                            fieldInputType = 'hidden';
+                        }
+                    _%>
+                <el-form-item label="<%=fieldChName%>" prop="type">
+                    <%_ if (fields[idx].fieldIsEnum) { _%>
+                    <el-select v-model="editItem.<%= fieldName %>">
+                        <%_ const enumPrefix = angularAppName + '.'+ fieldType;
+                                                    const values = fields[idx].fieldValues.replace(/\s/g, '').split(',');
+                                                    for (key in values) {
+                                                        const value = values[key]; _%>
+                        <el-option key="<%= value %>" value="<%= value %>" label="<%=value%>"/>
                         <%_ } _%>
+                    </el-select>
+                    <%_ } else { _%>
+                    <%_ if (fieldType === 'LocalDate') { _%>
+                    <div class="input-group">
+                        <input id="<%= entityFileName %>-<%= fieldName %>" type="date" class="<%= fieldInputClass %>"
+                            name="<%= fieldName %>"
+                            :class="{'valid': !$v.<%= entityInstance %>.<%= fieldName %>.$invalid, 'invalid': $v.<%= entityInstance %>.<%= fieldName %>.$invalid }"
+                            v-model="$v.<%= entityInstance %>.<%= fieldName %>.$model"
+                            <% if (fields[idx].fieldValidate === true && fields[idx].fieldValidateRules.includes('required')) { %>
+                            required<% } %> />
+                    </div>
+                    <%_ } else if (['Instant'].includes(fieldType)) { _%>
+                    <div class="d-flex">
+                        <input id="<%= entityFileName %>-<%= fieldName %>" type="datetime-local"
+                            class="<%= fieldInputClass %>" name="<%= fieldName %>"/>
+                    </div>
+                    <%_ } else if (['ZonedDateTime'].includes(fieldType)) { _%>
+                    <div class="d-flex">
+                        <input id="<%= entityFileName %>-<%= fieldName %>" type="datetime-local"
+                            class="<%= fieldInputClass %>" name="<%= fieldName %>"
+                    </div>
+                    <%_ } else if (fieldTypeBlobContent === 'text') { _%>
+                    <textarea class="<%= fieldInputClass %>" name="<%= fieldName %>"
+                        id="<%= entityFileName %>-<%= fieldName %>"
+                        :class="{'valid': !$v.<%= entityInstance %>.<%= fieldName %>.$invalid, 'invalid': $v.<%= entityInstance %>.<%= fieldName %>.$invalid }"
+                        v-model="$v.<%= entityInstance %>.<%= fieldName %>.$model"
+                        <% if (fields[idx].fieldValidate === true && fields[idx].fieldValidateRules.includes('required')) { %>
+                        required<% } %>></textarea>
+                    <%_ } else { _%>
+                    <el-input type="<%= fieldInputType %>" v-model="editItem.<%= fieldName %>" class="<%= fieldInputClass %>"></el-input>
                     <%_ } _%>
-                    <%_ for (idx in relationships) {
-                        const relationshipType = relationships[idx].relationshipType;
-                        const ownerSide = relationships[idx].ownerSide;
-                        const relationshipFieldName = relationships[idx].relationshipFieldName;
-                        const relationshipFieldNamePlural = relationships[idx].relationshipFieldNamePlural;
-                        const relationshipNameCapitalized = relationships[idx].relationshipNameCapitalized;
-                        const otherEntityName = relationships[idx].otherEntityName;
-                        const otherEntityStateName = relationships[idx].otherEntityStateName;
-                        const otherEntityField = relationships[idx].otherEntityField;
-                        const otherEntityFieldCapitalized = relationships[idx].otherEntityFieldCapitalized;
-                        const otherEntityAngularName = relationships[idx].otherEntityAngularName; _%>
-                        <%_ if (relationshipType === 'many-to-one'
-                        || (relationshipType === 'one-to-one' && ownerSide === true)
-                        || (relationshipType === 'many-to-many' && ownerSide === true && pagination === 'no')) { _%>
-                    <td>
-                            <%_ if (otherEntityName === 'user') { _%>
-                                <%_ if (relationshipType === 'many-to-many') { _%>
-                        <span v-for="(<%= relationshipFieldName %>, i) in <%= entityInstance %>.<%= relationshipFieldNamePlural %>" :key="<%= relationshipFieldName %>.id">{{i > 0 ? ', ' : ''}}
-                            {{<%= relationshipFieldName %>.<%= otherEntityField %>}}
-                        </span>
-                                <%_ } else { _%>
-                                    <%_ if (dto === 'no') { _%>
-                        {{<%= entityInstance + "." + relationshipFieldName %> ? <%= entityInstance + "." + relationshipFieldName + "." + otherEntityField%> : ''}}
-                                    <%_ } else { _%>
-                        {{<%= entityInstance + "." + relationshipFieldName + otherEntityFieldCapitalized %>}}
-                                    <%_ } _%>
-                                <%_ } _%>
-                            <%_ } else { _%>
-                                <%_ if (relationshipType === 'many-to-many') { _%>
-                        <span v-for="(<%= relationshipFieldName %>, i) in <%= entityInstance %>.<%= relationshipFieldNamePlural %>" :key="<%= relationshipFieldName %>.id">{{i > 0 ? ', ' : ''}}
-                            <router-link class="form-control-static" :to="{name: '<%= otherEntityAngularName %>View', params: {<%= relationshipFieldName %>Id: <%= relationshipFieldName %>.id}}">{{<%= relationshipFieldName + "." + otherEntityField %>}}</router-link>
-                        </span>
-                                <%_ } else { _%>
-                                    <%_ if (dto === 'no') { _%>
-                        <div v-if="<%= entityInstance + "." + relationshipFieldName %>">
-                            <router-link :to="{name: '<%= otherEntityAngularName %>View', params: {<%= relationshipFieldName %>Id: <%= entityInstance + "." + relationshipFieldName %>.id}}">{{<%= entityInstance + "." + relationshipFieldName + "." + otherEntityField %>}}</router-link>
-                        </div>
-                                    <%_ } else { _%>
-                        <div v-if="<%= entityInstance + "." + relationshipFieldName + "Id" %>">
-                            <router-link :to="{name: '<%= otherEntityAngularName %>View', params: {<%= relationshipFieldName %>Id: <%= entityInstance + "." + relationshipFieldName + "Id" %>}}">{{<%= entityInstance + "." + relationshipFieldName + otherEntityFieldCapitalized %>}}</router-link>
-                        </div>
-                                    <%_ } _%>
-                                <%_ } _%>
-                            <%_ } _%>
-                    </td>
-                        <%_ } _%>
-                    <%_ } _%>
-                    <td class="text-right">
-                        <div class="btn-group flex-btn-group-container">
-                            <router-link :to="{name: '<%= entityAngularName %>View', params: {<%= entityInstance %>Id: <%= entityInstance %>.id}}" tag="button" class="btn btn-info btn-sm details">
-                                <font-awesome-icon icon="eye"></font-awesome-icon>
-                                <span class="d-none d-md-inline" v-text="$t('entity.action.view')">View</span>
-                            </router-link>
-                            <router-link :to="{name: '<%= entityAngularName %>Edit', params: {<%= entityInstance %>Id: <%= entityInstance %>.id}}"  tag="button" class="btn btn-primary btn-sm edit">
-                                <font-awesome-icon icon="pencil-alt"></font-awesome-icon>
-                                <span class="d-none d-md-inline" v-text="$t('entity.action.edit')">Edit</span>
-                            </router-link>
-                            <b-button v-on:click="prepareRemove(<%= entityInstance %>)"
-                                   variant="danger"
-                                   class="btn btn-sm"
-                                   v-b-modal.removeEntity>
-                                <font-awesome-icon icon="times"></font-awesome-icon>
-                                <span class="d-none d-md-inline" v-text="$t('entity.action.delete')">Delete</span>
-                            </b-button>
-                        </div>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-        <b-modal ref="removeEntity" id="removeEntity" >
-            <span slot="modal-title"><span id="<%= i18nKeyPrefix %>.delete.question" v-text="$t('entity.delete.title')">Confirm delete operation</span></span>
-            <div class="modal-body">
-                <p id="<%= jhiPrefixDashed %>-delete-<%= entityInstance %>-heading" v-bind:title="$t('<%= i18nKeyPrefix %>.delete.question')">Are you sure you want to delete this <%= entityClassHumanized %>?</p>
+                    <%_ } _%>            
+                </el-form-item>
+                <%_ } _%>     
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogFormVisible = false">取消</el-button>
+                <el-button type="primary" @click="dialogStatus==='create'?createData():updateData()">确定</el-button>
             </div>
-            <div slot="modal-footer">
-                <button type="button" class="btn btn-secondary" v-text="$t('entity.action.cancel')" v-on:click="closeDialog()">Cancel</button>
-                <button type="button" class="btn btn-primary" id="<%= jhiPrefixDashed %>-confirm-delete-<%= entityInstance %>" v-text="$t('entity.action.delete')" v-on:click="remove<%= entityAngularName %>()">Delete</button>
-            </div>
-        </b-modal>
-        <%_ if (databaseType !== 'cassandra') { _%>
-        <%_ if (pagination === 'pager') { _%>
-        <!-- Pager is not implemented yet, so this is normal pagination instead -->
-        <div v-show="<%=entityInstancePlural %> && <%=entityInstancePlural %>.length > 0">
-            <div class="row justify-content-center">
-                <jhi-item-count :page="page" :total="queryCount" :itemsPerPage="itemsPerPage"></jhi-item-count>
-            </div>
-            <div class="row justify-content-center">
-                <b-pagination size="md" :total-rows="totalItems" v-model="page" :per-page="itemsPerPage" :change="loadPage(page)"></b-pagination>
-            </div>
-        </div>
-        <%_ } else if (pagination === 'pagination') { _%>
-        <div v-show="<%=entityInstancePlural %> && <%=entityInstancePlural %>.length > 0">
-            <div class="row justify-content-center">
-                <jhi-item-count :page="page" :total="queryCount" :itemsPerPage="itemsPerPage"></jhi-item-count>
-            </div>
-            <div class="row justify-content-center">
-                <b-pagination size="md" :total-rows="totalItems" v-model="page" :per-page="itemsPerPage" :change="loadPage(page)"></b-pagination>
-            </div>
-        </div>
-        <%_ } _%>
-        <%_ } _%>
+        </el-dialog>
     </div>
 </template>
 
