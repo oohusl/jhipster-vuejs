@@ -72,7 +72,7 @@ const vueFiles = {
                 },
                 {
                     file: 'entities/entity.service.ts',
-                    renameTo: generator => `entities/${generator.entityFolderName}/${
+                    renameTo: generator => `shared/service/${generator.entityFolderName}/${
                         generator.entityFileName
                     }.service.ts`
                 },

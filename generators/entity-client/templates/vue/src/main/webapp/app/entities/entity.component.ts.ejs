@@ -1,7 +1,12 @@
 import { Form } from 'element-ui';
 import { Component, Inject, Vue } from 'vue-property-decorator';
 import { <%= entityAngularName %> } from '@/shared/model/<%= entityModelFileName %>.model';
+<%_ for (idx2 in fields) {
+    if (fields[idx2].fieldType === 'NormalStatus') { _%>
+import { NormalStatus } from '@/shared/model/<%= entityModelFileName %>.model';
+<%_ } } _%>
 import <%= entityAngularName %>Service from '@/shared/service/<%= entityModelFileName %>.service';
+
 
 @Component
 export default class extends Vue {
@@ -14,8 +19,7 @@ export default class extends Vue {
     page: 1,
     limit: 20,
     importance: undefined,
-    title: undefined,
-    type: undefined
+    title: undefined
   };
 
   private textMap = {
@@ -51,7 +55,6 @@ export default class extends Vue {
 
   private handleCreate() {
     this.editItem = {};
-    //this.editItem.status = NormalStatus.ENABLED;
     this.dialogStatus = 'create';
     this.dialogFormVisible = true;
     this.$nextTick(() => {
@@ -59,11 +62,17 @@ export default class extends Vue {
     });
   }
 
-  private handleModifyStatus(row: <%= entityAngularName %>, status: any) {
+
+  
+  <%_ for (idx2 in fields) {
+    if (fields[idx2].fieldType === 'NormalStatus') { _%>
+  private handleModifyStatus(row: <%= entityAngularName %>, status: NormalStatus) {
     this.editItem = Object.assign({}, row);
     this.editItem.status = status;
+    this.editItem.status = status;
     this.updateItem(this.editItem);
-  }
+  }    
+  <%_ } } _%>
 
   private async getList() {
     this.listLoading = true;

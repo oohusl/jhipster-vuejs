@@ -35,7 +35,7 @@ export default class <%= entityAngularName %>Service {
   public retrieve(<% if (pagination !== 'no') { %>paginationQuery?: any<% } %>) : Promise<any> {
     return new Promise<any>(resolve => {
       axios.get(baseApiUrl<% if (pagination !== 'no') { %> + `?${buildPaginationQueryOpts(paginationQuery)}` <% } %>).then(function (res) {
-        resolve(res);
+        resolve(res.data);
       });
     });
   }
